@@ -28,21 +28,25 @@ func parseTraining(data string) (int, string, time.Duration, error) {
 	parts := strings.Split(data, ",")
 	if len(parts) == 3 {
 		stepsCount, err = strconv.Atoi(parts[0])
-		if err != nil {
+
+		if err != nil || stepsCount <= 0 {
+			err = fmt.Errorf("Ошибка конвертации шагов.")
 			return 0, "", 0, err
 		}
 
 		traningType = parts[1]
 
 		tariningTime, err = time.ParseDuration(parts[2])
-		if err != nil {
+		if err != nil || tariningTime <= 0 {
+			err = fmt.Errorf("Ошибка парсинга времени.")
 			return 0, "", 0, err
 		}
 
 		return stepsCount, traningType, tariningTime, nil
 	}
-	//fmt.Println("Количество данных некорректно")
-	return 0, "", 0, nil
+
+	err = fmt.Errorf("Количество параметров некорректно")
+	return 0, "", 0, err
 
 }
 
@@ -55,11 +59,11 @@ func distance(steps int, height float64) float64 {
 
 func meanSpeed(steps int, height float64, duration time.Duration) float64 {
 	// TODO: реализовать функцию
-	if duration == 0 {
+	if duration <= 0 {
 		return 0
 	}
 
-	dist := distance(steps, 15)
+	dist := distance(steps, height)
 	hours := duration.Hours()
 
 	return (dist / hours)
@@ -75,7 +79,7 @@ func RunningSpentCalories(steps int, weight, height float64, duration time.Durat
 		return (weight * ms * mins / minInH), err
 	}
 
-	return 0, fmt.Errorf("Некорректные входные данные. %w", err)
+	return 0, fmt.Errorf("Некорректные входные данные.")
 }
 
 func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
@@ -89,19 +93,53 @@ func WalkingSpentCalories(steps int, weight, height float64, duration time.Durat
 func TrainingInfo(data string, weight, height float64) (string, error) {
 	// TODO: реализовать функцию
 	var err error
+	var ccal float64
+	var err2 error
+
+	knownActivities := map[string]int{
+		"Ходьба": 1,
+		"Бег":    2,
+	}
 
 	steps, activity, tariningTime, err1 := parseTraining(data)
 	dist := distance(steps, height)
 	ms := meanSpeed(steps, height, tariningTime)
-	wccal, err2 := WalkingSpentCalories(steps, weight, height, tariningTime)
+
+	if activity == "Ходьба" {
+		ccal, err2 = WalkingSpentCalories(steps, weight, height, tariningTime)
+	} else {
+		ccal, err2 = RunningSpentCalories(steps, weight, height, tariningTime)
+	}
 
 	err = errors.Join(err1, err2)
 
-	text := fmt.Sprintf("Тип тренировки: %s \n"+
-		"Длительность: %.2f ч.\n"+
-		"Дистанция: %.2f км.\n"+
-		"Скорость: %.2f км/ч\n"+
-		"Сожгли калорий: %.2f", activity, tariningTime, dist, ms, wccal)
+	activityText := fmt.Sprintf("Тип тренировки: %s", activity)
+	timeText := fmt.Sprintf("Длительность: %.2f ч.", tariningTime.Minutes()/60)
+	distText := fmt.Sprintf("Дистанция: %.2f км.", dist)
+	msText := fmt.Sprintf("Скорость: %.2f км/ч", ms)
+	ccalText := fmt.Sprintf("Сожгли калорий: %.2f", ccal)
 
+	if _, ok := knownActivities[activity]; !ok {
+		//err3 := fmt.Errorf("Неизвестная активность: %v", activity)
+		err3 := fmt.Errorf("неизвестный тип тренировки")
+		text := ""
+
+		err = errors.Join(err, err3)
+		return text, err
+	}
+
+	text := fmt.Sprintf("%s\n"+
+		"%s\n"+
+		"%s\n"+
+		"%s\n"+
+		"%s\n", activityText, timeText, distText, msText, ccalText)
+
+	/*
+		text := fmt.Sprintf("Тип тренировки: %s\n"+
+			"Длительность: %.2f ч.\n"+
+			"Дистанция: %.2f км.\n"+
+			"Скорость: %.2f км/ч\n"+
+			"Сожгли калорий: %.2f\n", activity, tariningTime.Minutes()/60, dist, ms, ccal)
+	*/
 	return text, err
 }
