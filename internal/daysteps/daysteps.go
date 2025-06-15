@@ -3,6 +3,7 @@ package daysteps
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Yandex-Practicum/tracker/internal/spentcalories"
@@ -16,54 +17,34 @@ const (
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
-	// TODO: реализовать функцию
-	//"1000,1h30m"
-	s := ""         //строка даты
-	x := ""         //перебираемая буква
-	stepsCount := 0 //количество шагов
-	var walkTime time.Duration
-	var err error
 
-	for i := 0; i < len(data); i++ {
-		x = string(data[i])
-		if x != "," {
-			s = s + x
-			continue
+	parts := strings.Split(data, ",")
 
+	if len(parts) == 2 {
+		stepsCount, err := strconv.Atoi(parts[0])
+
+		if err != nil || stepsCount <= 0 {
+			err = fmt.Errorf("error converting steps: %v. stepsCount = %d", err, stepsCount)
+			return 0, 0, err
 		}
-		if stepsCount == 0 {
-			stepsCount, err = strconv.Atoi(s)
-			if err != nil {
-				return stepsCount, walkTime, err
-			}
-			s = ""
-			continue
 
+		walkTime, err := time.ParseDuration(parts[1])
+		if err != nil || walkTime <= 0 {
+			err = fmt.Errorf("error parsing time value: %v. walkTime = %.2f", err, walkTime)
+			return 0, 0, err
 		}
-	}
-	/*1, Jan, January — месяц;
-	  2 — число месяца;
-	  3, 15 — час в 12- и 24-часовом формате соответственно;
-	  4 — минуты;
-	  5 — секунды;
-	  06, 2006 — год;
-	  -0700, Z0700, Z07:00, Z07 — часовой пояс;
-	  Mon, Monday — день недели;
-	  pm, PM — время суток;
-	  MST — аббревиатура часового пояса.
-	*/
-	walkTime, err = time.ParseDuration(s)
-	if err != nil {
-		return stepsCount, walkTime, err
+
+		return stepsCount, walkTime, nil
 	}
 
-	return stepsCount, walkTime, nil
+	err := fmt.Errorf("incorrect number of parameters. expected: \"3456,3h00m\"")
+	return 0, 0, err
 
 }
 
 func DayActionInfo(data string, weight, height float64) string {
-	// TODO: реализовать функцию
-	// "1000,1h30m"
+
+	// "1000,1h30m" - пример корректных входных данных
 	steps, walkTime, _ := parsePackage(data)
 	dist := float64(steps) * stepLength / mInKm
 
