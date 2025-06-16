@@ -22,25 +22,32 @@ func parseTraining(data string) (int, string, time.Duration, error) {
 	//"3456,Ходьба,3h00m" - пример корректных входных данных
 
 	parts := strings.Split(data, ",")
-	if len(parts) == 3 {
-		return 0, "", 0, fmt.Errorf("incorrect number of parameters. expected: \"3456,Ходьба,3h00m\"")
+	if len(parts) != 3 {
+		return 0, "", 0, fmt.Errorf("incorrect number of parameters.\n expected 3 values.\n actual %d values", len(parts))
 	}
 
 	stepsCount, err := strconv.Atoi(parts[0])
 
-	if err != nil || stepsCount <= 0 {
-		return 0, "", 0, fmt.Errorf("error converting steps: %v. stepsCount = %d", err, stepsCount)
+	if stepsCount <= 0 {
+		return 0, "", 0, errors.New("error: wrong value for steps. stepsCount <= 0")
+	}
+
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("error converting steps: %v", err)
 	}
 
 	tariningTime, err := time.ParseDuration(parts[2])
 
-	if err != nil || tariningTime <= 0 {
-		return 0, "", 0, fmt.Errorf("error parsing time value: %v. tariningTime = %v", err, tariningTime)
+	if tariningTime <= 0 {
+		return 0, "", 0, errors.New("error: wrong value for time. tariningTime <= 0")
+	}
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("error parsing time value: %v.", err)
 	}
 
 	traningType := parts[1]
 
-	return stepsCount, traningType, tariningTime, nil
+	return stepsCount, traningType, tariningTime, err
 
 }
 
@@ -72,7 +79,7 @@ func RunningSpentCalories(steps int, weight, height float64, duration time.Durat
 		return (weight * ms * mins / minInH), err
 	}
 
-	return 0, fmt.Errorf("incorrect number of parameters")
+	return 0, errors.New("incorrect number of parameters")
 }
 
 func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
@@ -84,28 +91,34 @@ func WalkingSpentCalories(steps int, weight, height float64, duration time.Durat
 
 func TrainingInfo(data string, weight, height float64) (string, error) {
 
-	steps, activity, tariningTime, err1 := parseTraining(data)
+	steps, activity, tariningTime, err := parseTraining(data)
+
+	if err != nil {
+		return "", err
+	}
+
 	dist := distance(steps, height)
 	ms := meanSpeed(steps, height, tariningTime)
 
 	var ccal float64
-	var err2 error
 
 	switch {
 	case activity == "Ходьба":
-		ccal, err2 = WalkingSpentCalories(steps, weight, height, tariningTime)
+		ccal, err = WalkingSpentCalories(steps, weight, height, tariningTime)
 
 	case activity == "Бег":
-		ccal, err2 = RunningSpentCalories(steps, weight, height, tariningTime)
+		ccal, err = RunningSpentCalories(steps, weight, height, tariningTime)
 
 	default:
-		err3 := fmt.Errorf("неизвестный тип тренировки") //unknown training type
+		err := errors.New("неизвестный тип тренировки") //unknown training type
 		text := ""
-		err := errors.Join(err1, err3)
+
 		return text, err
 	}
 
-	err := errors.Join(err1, err2)
+	if err != nil {
+		return "", err
+	}
 
 	text := fmt.Sprintf("Тип тренировки: %s\n"+
 		"Длительность: %.2f ч.\n"+

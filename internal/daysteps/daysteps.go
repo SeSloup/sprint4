@@ -20,25 +20,33 @@ func parsePackage(data string) (int, time.Duration, error) {
 
 	parts := strings.Split(data, ",")
 
-	if len(parts) == 2 {
-		stepsCount, err := strconv.Atoi(parts[0])
+	if len(parts) != 2 {
+		err := fmt.Errorf("incorrect number of parameters.\n expected 3 values.\n actual %d values", len(parts))
+		return 0, 0, err
+	}
+	stepsCount, err := strconv.Atoi(parts[0])
 
-		if err != nil || stepsCount <= 0 {
-			err = fmt.Errorf("error converting steps: %v. stepsCount = %d", err, stepsCount)
-			return 0, 0, err
-		}
-
-		walkTime, err := time.ParseDuration(parts[1])
-		if err != nil || walkTime <= 0 {
-			err = fmt.Errorf("error parsing time value: %v. walkTime = %.2f", err, walkTime)
-			return 0, 0, err
-		}
-
-		return stepsCount, walkTime, nil
+	if stepsCount <= 0 {
+		err = fmt.Errorf("error: wrong value for steps. stepsCount = %d", stepsCount)
+		return 0, 0, err
 	}
 
-	err := fmt.Errorf("incorrect number of parameters. expected: \"3456,3h00m\"")
-	return 0, 0, err
+	if err != nil {
+		err = fmt.Errorf("error converting steps: %v", err)
+		return 0, 0, err
+	}
+
+	walkTime, err := time.ParseDuration(parts[1])
+	if walkTime <= 0 {
+		err = fmt.Errorf("error: wrong value for time. walkTime = %.2f", walkTime)
+		return 0, 0, err
+	}
+	if err != nil {
+		err = fmt.Errorf("error parsing time value: %v.", err)
+		return 0, 0, err
+	}
+
+	return stepsCount, walkTime, nil
 
 }
 
