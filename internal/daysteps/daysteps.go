@@ -26,23 +26,23 @@ func parsePackage(data string) (int, time.Duration, error) {
 	}
 	stepsCount, err := strconv.Atoi(parts[0])
 
-	if stepsCount <= 0 {
-		err = fmt.Errorf("error: wrong value for steps. stepsCount = %d", stepsCount)
-		return 0, 0, err
-	}
-
 	if err != nil {
 		err = fmt.Errorf("error converting steps: %v", err)
 		return 0, 0, err
 	}
 
-	walkTime, err := time.ParseDuration(parts[1])
-	if walkTime <= 0 {
-		err = fmt.Errorf("error: wrong value for time. walkTime = %.2f", walkTime)
+	if stepsCount <= 0 {
+		err = fmt.Errorf("error: wrong value for steps. stepsCount = %d", stepsCount)
 		return 0, 0, err
 	}
+
+	walkTime, err := time.ParseDuration(parts[1])
 	if err != nil {
 		err = fmt.Errorf("error parsing time value: %v.", err)
+		return 0, 0, err
+	}
+	if walkTime <= 0 {
+		err = fmt.Errorf("error: wrong value for time. walkTime = %.2f", walkTime)
 		return 0, 0, err
 	}
 
